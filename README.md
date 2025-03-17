@@ -1,4 +1,4 @@
-# Video Clipper
+# Dashcam Video Compiler
 
 A Python script that creates a compilation video by extracting and combining random clips from multiple MP4 files.
 
