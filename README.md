@@ -18,7 +18,8 @@ A Python script that creates a compilation video by extracting and combining ran
 - Python 3.x
 - FFmpeg (must be installed and accessible in system PATH)
 - Required Python packages:
-  ```
+
+  ```bash
   tqdm
   ```
 
@@ -26,9 +27,11 @@ A Python script that creates a compilation video by extracting and combining ran
 
 1. Clone this repository or download the script
 2. Install the required Python package:
+
    ```bash
    pip install tqdm
    ```
+
 3. Ensure FFmpeg is installed on your system
 
 ## Usage
@@ -44,6 +47,7 @@ python main.py
 ```
 
 The script will prompt you for:
+
 - Input directory containing MP4 files
 - Target duration for the final compilation
 - Output filename
@@ -57,6 +61,7 @@ python main.py --input-dir "/path/to/videos" --duration 30 --output "compilation
 ```
 
 Arguments:
+
 - `--input-dir`: Directory containing MP4 files (default: "/Volumes/video/Ford F150 Lightning Dashcam")
 - `--duration`: Target duration in seconds for the final video
 - `--output`: Output filename (default: "compiled-video.mp4")
@@ -67,16 +72,19 @@ Arguments:
 #### Date Filtering Examples
 
 Filter clips from May 2025:
+
 ```bash
 python main.py --month "2025-05" --duration 60 --output "may-compilation.mp4"
 ```
 
 Filter clips from a specific date range:
+
 ```bash
 python main.py --start-date "2025-05-01" --end-date "2025-05-31" --duration 60
 ```
 
 Filter clips from May 1st to June 15th, 2025:
+
 ```bash
 python main.py --start-date "20250501" --end-date "20250615" --duration 90
 ```
@@ -98,6 +106,7 @@ The script has some built-in constants that can be modified in the code:
 ## Error Handling
 
 The script includes comprehensive error handling for:
+
 - Invalid input directories
 - Missing or corrupt video files
 - FFmpeg processing errors
@@ -108,4 +117,4 @@ The script includes comprehensive error handling for:
 
 - The script uses FFmpeg's stream copy mode for faster processing and to maintain original video quality
 - Progress is displayed using a progress bar and status messages
-- The actual duration of the final video might slightly exceed the target duration due to clip selection 
+- The actual duration of the final video might slightly exceed the target duration due to clip selection

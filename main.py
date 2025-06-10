@@ -424,6 +424,10 @@ def parse_arguments():
             default=OUTPUT_FILENAME
         )
     
+    # Ensure output filename has .mp4 extension
+    if not args.output.lower().endswith('.mp4'):
+        args.output += '.mp4'
+    
     # Store parsed dates in args for easier access
     args.start_date_parsed = start_date
     args.end_date_parsed = end_date
