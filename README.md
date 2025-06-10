@@ -1,4 +1,4 @@
-# Video Clipper
+# Dashcam Video Compiler
 
 A Python script that creates a compilation video by extracting and combining random clips from multiple MP4 files.
 
@@ -10,6 +10,8 @@ A Python script that creates a compilation video by extracting and combining ran
 - Preserves original video quality using stream copy
 - Supports both command-line arguments and interactive input
 - Progress tracking with status updates
+- **Date-based filtering**: Filter clips by date range based on filename timestamps
+- **Month filtering**: Convenient option to filter clips for a specific month
 
 ## Prerequisites
 
@@ -58,6 +60,26 @@ Arguments:
 - `--input-dir`: Directory containing MP4 files (default: "/Volumes/video/Ford F150 Lightning Dashcam")
 - `--duration`: Target duration in seconds for the final video
 - `--output`: Output filename (default: "compiled-video.mp4")
+- `--start-date`: Start date for filtering files (formats: YYYY-MM-DD, YYYY-MM, YYYYMMDD, YYYYMM)
+- `--end-date`: End date for filtering files (formats: YYYY-MM-DD, YYYY-MM, YYYYMMDD, YYYYMM)
+- `--month`: Filter for specific month (format: YYYY-MM or YYYYMM). Overrides start-date and end-date.
+
+#### Date Filtering Examples
+
+Filter clips from May 2025:
+```bash
+python main.py --month "2025-05" --duration 60 --output "may-compilation.mp4"
+```
+
+Filter clips from a specific date range:
+```bash
+python main.py --start-date "2025-05-01" --end-date "2025-05-31" --duration 60
+```
+
+Filter clips from May 1st to June 15th, 2025:
+```bash
+python main.py --start-date "20250501" --end-date "20250615" --duration 90
+```
 
 ## Configuration
 

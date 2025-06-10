@@ -4,6 +4,7 @@ import argparse
 import subprocess
 from tqdm import tqdm
 import shlex
+from datetime import datetime, date, timedelta
 
 # Define directories
 INPUT_DIR = r"/Volumes/video/Ford F150 Lightning Dashcam"
@@ -194,7 +195,79 @@ def compile_clips(clips, target_duration, output_path):
             if os.path.exists(clip):
                 os.remove(clip)
 
-def main(input_dir, target_duration, output_filename):
+def extract_date_from_filename(filename):
+    """Extract date from filename with format YYYYMMDDHHMMSS_*."""
+    try:
+        # Get just the filename without path
+        basename = os.path.basename(filename)
+        
+        # Extract the date part (first 8 characters should be YYYYMMDD)
+        if len(basename) >= 8 and basename[:8].isdigit():
+            date_str = basename[:8]  # YYYYMMDD
+            return datetime.strptime(date_str, '%Y%m%d').date()
+        else:
+            return None
+    except ValueError:
+        return None
+
+def filter_files_by_date_range(files, start_date=None, end_date=None):
+    """Filter files based on date range extracted from filenames."""
+    filtered_files = []
+    
+    for file_path in files:
+        file_date = extract_date_from_filename(file_path)
+        
+        if file_date is None:
+            # If we can't extract date, include the file (preserve old behavior)
+            print(f"Warning: Could not extract date from {os.path.basename(file_path)}, including in selection")
+            filtered_files.append(file_path)
+            continue
+        
+        # Check if file date is within the specified range
+        include_file = True
+        
+        if start_date and file_date < start_date:
+            include_file = False
+        
+        if end_date and file_date > end_date:
+            include_file = False
+        
+        if include_file:
+            filtered_files.append(file_path)
+    
+    return filtered_files
+
+def parse_date_input(date_str):
+    """Parse date input in various formats (YYYY-MM-DD, YYYY-MM, YYYYMMDD)."""
+    if not date_str:
+        return None
+    
+    date_str = date_str.strip()
+    
+    try:
+        # Try YYYY-MM-DD format
+        if len(date_str) == 10 and date_str.count('-') == 2:
+            return datetime.strptime(date_str, '%Y-%m-%d').date()
+        
+        # Try YYYY-MM format (for month-based filtering)
+        elif len(date_str) == 7 and date_str.count('-') == 1:
+            return datetime.strptime(date_str, '%Y-%m').date()
+        
+        # Try YYYYMMDD format
+        elif len(date_str) == 8 and date_str.isdigit():
+            return datetime.strptime(date_str, '%Y%m%d').date()
+        
+        # Try YYYYMM format
+        elif len(date_str) == 6 and date_str.isdigit():
+            return datetime.strptime(date_str, '%Y%m').date()
+        
+        else:
+            raise ValueError("Unsupported date format")
+    
+    except ValueError as e:
+        raise ValueError(f"Invalid date format. Use YYYY-MM-DD, YYYY-MM, YYYYMMDD, or YYYYMM. Error: {e}")
+
+def main(input_dir, target_duration, output_filename, start_date=None, end_date=None):
     # Ensure output directory exists
     if not os.path.exists(OUTPUT_DIR):
         os.makedirs(OUTPUT_DIR)
@@ -202,6 +275,20 @@ def main(input_dir, target_duration, output_filename):
     # Get list of MP4 files
     mp4_files = get_mp4_files(input_dir)
     print(f"\nFound {len(mp4_files)} MP4 files in {input_dir}")
+    
+    # Filter files by date range if specified
+    if start_date or end_date:
+        print(f"Filtering files by date range...")
+        if start_date:
+            print(f"Start date: {start_date}")
+        if end_date:
+            print(f"End date: {end_date}")
+        
+        mp4_files = filter_files_by_date_range(mp4_files, start_date, end_date)
+        print(f"After date filtering: {len(mp4_files)} files remain")
+        
+        if not mp4_files:
+            raise ValueError("No files match the specified date range")
     
     # Estimate how many clips are needed to reach the target duration
     avg_clip_duration = (CLIP_DURATION_RANGE[0] + CLIP_DURATION_RANGE[1]) / 2
@@ -262,8 +349,59 @@ def parse_arguments():
         type=str,
         help="Input directory containing MP4 files"
     )
+    parser.add_argument(
+        "--start-date",
+        type=str,
+        help="Start date for filtering files (formats: YYYY-MM-DD, YYYY-MM, YYYYMMDD, YYYYMM)"
+    )
+    parser.add_argument(
+        "--end-date",
+        type=str,
+        help="End date for filtering files (formats: YYYY-MM-DD, YYYY-MM, YYYYMMDD, YYYYMM)"
+    )
+    parser.add_argument(
+        "--month",
+        type=str,
+        help="Filter for specific month (format: YYYY-MM or YYYYMM). Overrides start-date and end-date."
+    )
     
     args = parser.parse_args()
+    
+    # Handle month filtering (convenience option)
+    if args.month:
+        try:
+            month_date = parse_date_input(args.month)
+            # Set start date to first day of month
+            args.start_date = month_date.replace(day=1).strftime('%Y-%m-%d')
+            # Set end date to last day of month
+            if month_date.month == 12:
+                next_month = month_date.replace(year=month_date.year + 1, month=1, day=1)
+            else:
+                next_month = month_date.replace(month=month_date.month + 1, day=1)
+            last_day = (next_month - timedelta(days=1))
+            args.end_date = last_day.strftime('%Y-%m-%d')
+            print(f"Month filter: {args.month} -> {args.start_date} to {args.end_date}")
+        except ValueError as e:
+            print(f"Invalid month format: {e}")
+            exit(1)
+    
+    # Parse date arguments
+    start_date = None
+    end_date = None
+    
+    if args.start_date:
+        try:
+            start_date = parse_date_input(args.start_date)
+        except ValueError as e:
+            print(f"Invalid start date: {e}")
+            exit(1)
+    
+    if args.end_date:
+        try:
+            end_date = parse_date_input(args.end_date)
+        except ValueError as e:
+            print(f"Invalid end date: {e}")
+            exit(1)
     
     # Prompt for missing values
     if args.input_dir is None:
@@ -286,6 +424,10 @@ def parse_arguments():
             default=OUTPUT_FILENAME
         )
     
+    # Store parsed dates in args for easier access
+    args.start_date_parsed = start_date
+    args.end_date_parsed = end_date
+    
     return args
 
 if __name__ == "__main__":
@@ -297,9 +439,13 @@ if __name__ == "__main__":
         print(f"Input directory: {args.input_dir}")
         print(f"Target duration: {args.duration} seconds")
         print(f"Output filename: {args.output}")
+        if args.start_date_parsed:
+            print(f"Start date: {args.start_date_parsed}")
+        if args.end_date_parsed:
+            print(f"End date: {args.end_date_parsed}")
         print()
         
-        main(args.input_dir, args.duration, args.output)
+        main(args.input_dir, args.duration, args.output, args.start_date_parsed, args.end_date_parsed)
     except Exception as e:
         print(f"An error occurred: {e}")
     except KeyboardInterrupt:
