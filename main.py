@@ -304,20 +304,36 @@ def main(input_dir, target_duration, output_filename, start_date=None, end_date=
     skipped_count = 0
     print(f"Attempting to extract clips from {len(selected_files)} videos...")
     
-    for video_path in tqdm(selected_files, desc="Processing videos"):
-        clip = get_random_clip(video_path, CLIP_DURATION_RANGE)
-        if clip:
-            clips.append(clip)
-            clip_duration = get_video_duration(clip)
-            if clip_duration:
-                total_duration += clip_duration
-                print(f"Added clip: {clip} (duration: {clip_duration:.1f}s)")
-        else:
-            skipped_count += 1
+    # Use a manual progress bar for better control
+    total_files = len(selected_files)
+    
+    with tqdm(total=total_files, desc="Processing videos") as pbar:
+        for i, video_path in enumerate(selected_files):
+            clip = get_random_clip(video_path, CLIP_DURATION_RANGE)
+            if clip:
+                clips.append(clip)
+                clip_duration = get_video_duration(clip)
+                if clip_duration:
+                    total_duration += clip_duration
+                    # Update the progress bar description instead of printing
+                    pbar.set_description(f"Processing videos (Added: {len(clips)}, Duration: {total_duration:.1f}s)")
+            else:
+                skipped_count += 1
+            
+            # Update progress bar
+            pbar.update(1)
+            
+            # Stop adding clips if we've exceeded the target duration
+            if total_duration >= target_duration:
+                # Complete the progress bar to show full total
+                remaining_files = total_files - (i + 1)
+                if remaining_files > 0:
+                    pbar.update(remaining_files)
+                break
         
-        # Stop adding clips if we've exceeded the target duration
-        if total_duration >= target_duration:
-            break
+        # Ensure the progress bar displays completely before continuing
+        import time
+        time.sleep(1)
     
     print(f"\nProcessing complete:")
     print(f"- Successfully created {len(clips)} clips")
